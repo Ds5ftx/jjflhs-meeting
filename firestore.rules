@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function member() { return request.auth != null && exists(/databases/$(database)/documents/members/$(request.auth.uid)); }
+  function admin() { return member() && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'admin'; }
+  match /members/{uid} { allow get: if request.auth != null && request.auth.uid == uid; allow list, write: if false; }
+  match /meetings/{date}/entries/{dept} {
+   allow read: if member();
+   allow create, update: if member()
+    && (admin() || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.department == dept)
+    && dept.matches('^([0-9]|10|11)$') && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+    && request.resource.data.keys().hasOnly(['text','status','revision','updatedAt','updatedBy'])
+    && request.resource.data.text is string && request.resource.data.text.size() <= 20000
+    && request.resource.data.status in ['미입력','수정 중','완료']
+    && request.resource.data.updatedBy == request.auth.uid
+    && request.resource.data.updatedAt is number
+    && request.resource.data.revision is int
+    && ((!exists(/databases/$(database)/documents/meetings/$(date)/entries/$(dept)) && request.resource.data.revision == 1)
+     || (exists(/databases/$(database)/documents/meetings/$(date)/entries/$(dept)) && request.resource.data.revision == resource.data.revision + 1));
+   allow delete: if false;
+  }
+ }
+}
