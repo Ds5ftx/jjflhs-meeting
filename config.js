@@ -1,3 +1,8 @@
-// Firebase 콘솔 > 프로젝트 설정 > 내 앱 > 웹 앱의 firebaseConfig를 붙여 넣으세요.
-// 이 웹 설정은 공개 가능한 값입니다. 서비스 계정 키/관리자 비밀번호는 넣지 마세요.
-window.FIREBASE_CONFIG = null;
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB1oJyMfbsgjYydXIvbU8TIQpwGMUtki_s",
+  authDomain: "jjflhs-meeting.firebaseapp.com",
+  projectId: "jjflhs-meeting",
+  storageBucket: "jjflhs-meeting.firebasestorage.app",
+  messagingSenderId: "690549525004",
+  appId: "1:690549525004:web:d419841f8164fb1e66bc29"
+};
