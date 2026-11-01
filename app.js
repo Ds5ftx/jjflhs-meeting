@@ -27,9 +27,18 @@ function notice(s){$('notice').textContent=s}
 function render(){
  const d=$('date').value; $('heading').textContent=d?new Date(d+'T12:00:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'})+' 회의자료':'회의자료';
  $('progress').textContent=`완료 ${Object.values(records).filter(r=>r.status==='완료').length} / ${departments.length}개 부서`;
+ const completed=departments.filter((_,i)=>records[i]?.status==='완료').length;
+ const inProgress=departments.filter((_,i)=>records[i]?.status==='수정 중').length;
+ const percent=Math.round(completed/departments.length*100);
+ if($('completeCount')){
+  $('completeCount').textContent=ready?completed:'—';$('editingCount').textContent=ready?inProgress:'—';$('emptyCount').textContent=ready?departments.length-completed-inProgress:'—';
+  $('completionPercent').textContent=ready?percent+'%':'—';$('completionFill').style.width=(ready?percent:0)+'%';
+  if(ready)$('completionBar').setAttribute('aria-valuenow',percent);else $('completionBar').removeAttribute('aria-valuenow');
+  $('heroDate').replaceChildren();if(d){const parts=d.split('-');$('heroDate').append(parts[1]+'.'+parts[2]);const weekday=document.createElement('small');weekday.textContent=new Date(d+'T12:00:00Z').toLocaleDateString('ko-KR',{weekday:'long',timeZone:'Asia/Seoul'});$('heroDate').append(weekday);$('heroSub').textContent=parts[0]+' 진주외고 부장회의'}else{$('heroDate').textContent='날짜를 선택하세요'}
+ }
  $('rows').replaceChildren(); departments.forEach((name,i)=>{
  const r=records[i]||{}, tr=document.createElement('tr'), a=document.createElement('td'), b=document.createElement('td'), c=document.createElement('td');
- a.textContent=name; b.className='text'+(r.text?'':' empty');b.textContent=r.text||'등록된 전달사항이 없습니다.';
+ const [dept,owner]=name.split('(');const title=document.createElement('span');title.className='department-name';title.textContent=dept;a.append(title);if(owner){const person=document.createElement('span');person.className='department-owner';person.textContent=owner.replace(')','');a.append(person)} b.className='text'+(r.text?'':' empty');b.textContent=r.text||'등록된 전달사항이 없습니다.';
  const badge=document.createElement('span');badge.className='badge '+(r.status==='완료'?'done':r.status==='수정 중'?'editing':'');badge.textContent=r.status||'미입력'; c.append(badge,document.createElement('br'));
  const btn=document.createElement('button');btn.textContent='수정';btn.disabled=!ready;btn.onclick=()=>openEditor(i);c.append(btn);
  if(r.updatedAt){const t=document.createElement('small'); t.className='stamp';t.textContent=new Date(r.updatedAt).toLocaleString('ko-KR');c.append(t)}
