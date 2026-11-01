@@ -5,7 +5,24 @@ const demo=!window.MEETING_API_URL;
 const base=(window.MEETING_API_URL||'').replace(/\/$/,'');
 let generation=0;
 async function request(path, body){const response=await fetch(base+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(20000)});const data=await response.json();if(!response.ok)throw Error(data.error||'요청 실패');return data}
-const now=new Date(); $('date').value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(now);
+// 한국 시간: 월·화는 이번 주 월요일, 수~일은 다음 주 월요일.
+function meetingDate(now=new Date()){
+ const local=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
+ const day=new Date(local+'T00:00:00Z'), weekday=day.getUTCDay();
+ const offset=weekday===1?0:weekday===2?-1:(8-weekday)%7;
+ day.setUTCDate(day.getUTCDate()+offset);
+ return day.toISOString().slice(0,10);
+}
+let automaticDate=meetingDate();
+$('date').value=automaticDate;
+function checkMeetingDate(){
+ const next=meetingDate();
+ if(next===automaticDate||busy||$('editor').open)return false;
+ const followsSchedule=$('date').value===automaticDate;
+ automaticDate=next;
+ if(followsSchedule){$('date').value=next;load();return true}
+ return false;
+}
 function notice(s){$('notice').textContent=s}
 function render(){
  const d=$('date').value; $('heading').textContent=d?new Date(d+'T12:00:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'})+' 회의자료':'회의자료';
@@ -46,4 +63,7 @@ $('date').onchange=load;$('print').onclick=()=>{if(!ready){alert('자료를 불�
 $('export').onclick=()=>{if(!ready)return;const blob=new Blob([JSON.stringify({date:$('date').value,departments,entries:records},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='부장회의_'+$('date').value+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
 window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});
 load();
-setInterval(()=>{if(!busy&&!$('editor').open&&document.visibilityState==='visible')load()},60000);
+setInterval(()=>{if(!busy&&!$('editor').open&&document.visibilityState==='visible'&&!checkMeetingDate())load()},60000);
+// 열어 둔 화면도 전환하며, 편집 중에는 저장 또는 닫기 후 전환합니다.
+setInterval(()=>{if(document.visibilityState==='visible')checkMeetingDate()},1000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkMeetingDate()});
